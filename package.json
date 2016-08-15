@@ -1,0 +1,36 @@
+{
+  "name": "motion2d",
+  "version": "0.1.0",
+  "description": "A TypeScript library for 2D motion with steering behaviors.",
+  "keywords": [
+    "2d",
+    "game"
+  ],
+  "main": "dist/motion2d.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/yahiko00/Motion2D.git"
+  },
+  "scripts": {
+    "prebuild": "cd node_modules/paon  && npm run build && cd ../geometry2d && npm run build && cd ../..", 
+    "build": "tsc -d && uglifyjs dist/hitbox2d.js dist/motion2d.js -mc --output dist/motion2d.min.js",
+    "postbuild": "copy /b node_modules\\paon\\dist\\paon.d.ts+node_modules\\geometry2d\\dist\\geometry2d.d.ts+dist\\hitbox2d.d.ts+dist\\motion2d.d.ts dist\\motion2d.min.d.ts"
+  },
+  "author": "Yahiko <yahiko.ninja@gmail.com>",
+  "maintainers": [
+    "Yahiko"
+  ],
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/yahiko00/Motion2D/raw/master/LICENSE.txt"
+    }
+  ],
+  "dependencies": {
+    "geometry2d": "^0.1.3",
+    "paon": "^0.1.0"
+  },
+  "devDependencies": {
+    "uglify-js": "^2.4.13"
+  }
+}
