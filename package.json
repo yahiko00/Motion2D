@@ -14,7 +14,7 @@
   "scripts": {
     "prebuild": "cd node_modules/paon  && npm run build && cd ../geometry2d && npm run build && cd ../..", 
     "build": "tsc -d && uglifyjs dist/hitbox2d.js dist/motion2d.js -mc --output dist/motion2d.min.js",
-    "postbuild": "copy /b node_modules\\paon\\dist\\paon.d.ts+node_modules\\geometry2d\\dist\\geometry2d.d.ts+dist\\hitbox2d.d.ts+dist\\motion2d.d.ts dist\\motion2d.min.d.ts"
+    "postbuild": "copy /b dist\\hitbox2d.d.ts+dist\\motion2d.d.ts dist\\motion2d.min.d.ts"
   },
   "author": "Yahiko <yahiko.ninja@gmail.com>",
   "maintainers": [

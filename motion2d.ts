@@ -24,8 +24,8 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-/// <reference path="node_modules/paon/dist/paon.d.ts" />
-/// <reference path="node_modules/geometry2d/dist/geometry2d.d.ts" />
+/// <reference path="../paon/dist/paon.d.ts" />
+/// <reference path="../geometry2d/dist/geometry2d.d.ts" />
 
 namespace Motion2D {
     export interface Mobile extends Paon.Observable {
@@ -39,24 +39,18 @@ namespace Motion2D {
         setMaxSpeed(maxSpeed: number): number;
         setDirection(angleRad: number): number;
         setVelocity(velocity: G2D.Vector): G2D.Vector;
-        update(): void;
+        updatePosition(): void;
         moveXY(unitVector: G2D.Vector, speed?: number): void;
         moveToDirection(speed?: number): void;
         moveToPoint(point: G2D.Point, speed?: number): void;
+        stop(): void;
         setDirectionToPoint(point: G2D.Point): void;
         getSpeed(): number;
         getDistanceToPoint(point: G2D.Point): number;
         getDistanceSqToPoint(point: G2D.Point): number;
     } // Mobile
 
-    export interface SteeringMobile extends Mobile {
-        mass: number;
-
-        seek(point: G2D.Point, speed: number): void;
-        flee(point: G2D.Point, speed: number): void;
-    } // SteeringMobile
-
-    export class PawnMobile implements SteeringMobile {
+    export class SteeringMobile implements Mobile {
         // Paon.Observable
         observers: Paon.Observer[];
 
@@ -70,20 +64,22 @@ namespace Motion2D {
 
         // SteeringMobile
         mass: number;
+        acceleration: G2D.Vector;
 
         constructor(
             x: number, y: number, maxSpeed: number, direction: number, hitbox: HitboxCircle,
-            mass = 1, target?: PawnMobile) {
+            mass = 1, target?: SteeringMobile) {
             this.observers = [];
             this.x = x;
             this.y = y;
-            this.velocity = { x: 0, y: 0 };
+            this.velocity = G2D.NULL_VEC;
             this.maxSpeed = maxSpeed;
             this.hitbox = hitbox;
             this.direction = direction;
 
             // SteeringMobile
             this.mass = mass;
+            this.acceleration = G2D.NULL_VEC;
         } // constructor
 
         addObserver(observer: Paon.Observer): void {
@@ -122,14 +118,21 @@ namespace Motion2D {
             return this.velocity;
         }
 
-        update(): void {
+        updatePosition(): void {
+            // SteeringMobile
+            this.acceleration = G2D.NULL_VEC;
+
             // Mobile
             this.x += this.velocity.x;
             this.y += this.velocity.y;
             this.hitbox.x = this.x;
             this.hitbox.y = this.y;
+        }
 
-            // SteeringMobile
+        updateVelocity(): void {
+            this.acceleration = G2D.limitVector(this.acceleration, this.maxSpeed);
+            this.acceleration = G2D.divVectorByScalar(this.acceleration, this.mass);
+            this.setVelocity(G2D.addVectors(this.velocity, this.acceleration));
         }
 
         moveXY(unitVector: G2D.Vector, speed = this.maxSpeed): void {
@@ -143,6 +146,10 @@ namespace Motion2D {
 
         moveToPoint(point: G2D.Point, speed = this.maxSpeed): void {
             this.moveXY(G2D.normalizeVector(G2D.subVectors(point, this)), speed);
+        }
+
+        stop(): void {
+            this.setVelocity(G2D.NULL_VEC);
         }
 
         setDirectionToPoint(point: G2D.Point): void {
@@ -162,27 +169,37 @@ namespace Motion2D {
             return G2D.distanceSq(this, point);
         }
 
-        seek(point: G2D.Point): void {
-            let prefVelocity = G2D.limitVector(G2D.subVectors(point, this), this.maxSpeed);
-            this.applySteering(prefVelocity);
-        }
-
         flee(point: G2D.Point): void {
             let prefVelocity = G2D.limitVector(G2D.subVectors(this, point), this.maxSpeed);
-            this.applySteering(prefVelocity);
+            this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(prefVelocity, this.velocity));
         }
 
-        applySteering(prefVelocity: G2D.Vector): void {
-            let steering = G2D.limitVector(G2D.subVectors(prefVelocity, this.velocity), this.maxSpeed);
-            steering = G2D.divVectorByScalar(steering, this.mass);
-            this.setVelocity(G2D.addVectors(this.velocity, steering));
+        seek(point: G2D.Point): void {
+            let prefVelocity = G2D.limitVector(G2D.subVectors(point, this), this.maxSpeed);
+            this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(prefVelocity, this.velocity));
+        }
+
+        seekArrival(point: G2D.Point, slowingRadius: number): void {
+            let prefVelocity = G2D.limitVector(G2D.subVectors(point, this), this.maxSpeed);
+            let distance = this.getDistanceToPoint(point);
+
+            if (distance <= slowingRadius) {
+                prefVelocity = G2D.multVectorByScalar(prefVelocity, this.maxSpeed * distance / slowingRadius);
+            }
+
+            this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(prefVelocity, this.velocity));
         }
 
         seekRandomPoint(maxX: number, maxY: number, speed = this.maxSpeed): void {
             let point = { x: Math.random() * maxX, y: Math.random() * maxY };
             this.seek(point);
         }
-    } // PawnMobile
+
+        pursuit(target: Mobile, tickAhead = 3) {
+            let futurePosition = G2D.addVectors(target, G2D.multVectorByScalar(target.velocity, tickAhead));
+            this.seek(futurePosition);
+        }
+    } // SteeringMobile
 
     export class BulletMobile implements Mobile {
         // Paon.Observable
@@ -240,7 +257,7 @@ namespace Motion2D {
             return this.velocity;
         }
 
-        update() {
+        updatePosition() {
             // Mobile
             this.x += this.velocity.x;
             this.y += this.velocity.y;
@@ -260,6 +277,10 @@ namespace Motion2D {
         moveToPoint(point: G2D.Point): void {
             this.setDirectionToPoint(point);
             this.moveXY(G2D.normalizeVector(G2D.subVectors(point, this)));
+        }
+
+        stop(): void {
+            this.setVelocity(G2D.NULL_VEC);
         }
 
         setDirectionToPoint(point: G2D.Point): void {
