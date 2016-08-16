@@ -25,10 +25,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 namespace Motion2D {
-    export const enum HitboxStrength { WEAK, STRONG };
-
     export abstract class Hitbox {
-        strength: HitboxStrength;
         abstract getDistToPoint(point: G2D.Point): number;
         abstract getDistToHitbox(hitbox: Hitbox): number;
         abstract getNormalVector(point: G2D.Point): G2D.Vector;
@@ -40,13 +37,12 @@ namespace Motion2D {
         width: number;
         height: number;
 
-        constructor(x: number, y: number, width: number, height: number, strength: HitboxStrength = HitboxStrength.STRONG) {
+        constructor(x: number, y: number, width: number, height: number) {
             super();
             this.x = x;
             this.y = y;
             this.width = width;
             this.height = height;
-            this.strength = strength;
         } // constructor
 
         getDistToPoint(point: G2D.Point): number {
@@ -78,12 +74,11 @@ namespace Motion2D {
         y: number;
         radius: number;
 
-        constructor(x: number, y: number, radius: number, strength: HitboxStrength = HitboxStrength.STRONG) {
+        constructor(x: number, y: number, radius: number) {
             super();
             this.x = x;
             this.y = y;
             this.radius = radius;
-            this.strength = strength;
         } // constructor
 
         getDistToPoint(point: G2D.Point): number {
