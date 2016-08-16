@@ -28,6 +28,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /// <reference path="../geometry2d/dist/geometry2d.d.ts" />
 
 namespace Motion2D {
+    export type Path = G2D.Point[];
+
     export class Mobile {
         // Mobile
         x: number;
@@ -107,20 +109,23 @@ namespace Motion2D {
     } // Mobile
 
     export class SteeringMobile extends Mobile {
-        // SteeringMobile
         mass: number;
         acceleration: G2D.Vector;
+        path: Path | null;
+        currentPathNode: number;
+        pathDirection: number;
 
-        constructor(x: number, y: number, maxSpeed: number, direction: number, hitbox: HitboxCircle, mass = 1) {
+        constructor(x: number, y: number, maxSpeed: number, direction: number, hitbox: HitboxCircle, mass = 1, path?: Path | null, currentPathNode = 0) {
             super(x, y, maxSpeed, direction, hitbox);
 
-            // SteeringMobile
             this.mass = mass;
             this.acceleration = G2D.NULL_VEC;
+            this.path = path || null;
+            this.currentPathNode = currentPathNode;
+            this.pathDirection = 1;
         } // constructor
 
         updatePosition(): void {
-            // SteeringMobile
             this.acceleration = G2D.NULL_VEC;
 
             super.updatePosition();
@@ -218,6 +223,44 @@ namespace Motion2D {
             } // for i
 
             return mostThreateningObstacle;
-        } // fintMostThreateningObstacle
+        } // findMostThreateningObstacle
+
+        followPath(tolerance: number, backAndForth = false): boolean {
+            if (this.path && this.path.length > 0) {
+                let target = this.path[this.currentPathNode];
+                this.seek(target);
+
+                if (G2D.distanceSq(this, target) <= tolerance * tolerance) {
+                    this.currentPathNode += this.pathDirection;
+
+                    if (this.currentPathNode >= this.path.length || this.currentPathNode < 0) {
+                        if (backAndForth) {
+                            this.pathDirection *= -1;
+                            this.currentPathNode += this.pathDirection;
+                        }
+                        else {
+                            this.currentPathNode = this.path.length - 1;
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        } // followPath
+
+        moveAround(point: G2D.Point, distance: number, clockwise = true): void {
+            let direction: number = -1;
+            if (!clockwise) {
+                let direction = 1;
+            }
+            let vecLine = G2D.subVectors(this, point);
+            let contact = G2D.scaleVector(vecLine, distance);
+            let attraction = G2D.subVectors(contact, vecLine);
+            let tangent = G2D.scaleVector(G2D.tangentVectorCircle({ x: point.x, y: point.y, radius: distance }, this), direction * this.maxSpeed);
+
+            this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(attraction, this.velocity));
+            this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(tangent, this.velocity));
+        } // moveAround
     } // SteeringMobile
 } // Motion2D
