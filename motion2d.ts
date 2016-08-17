@@ -272,7 +272,7 @@ namespace Motion2D {
         moveAround(point: G2D.Point, distance: number, clockwise = true): void {
             let direction: number = -1;
             if (!clockwise) {
-                let direction = 1;
+                direction = 1;
             }
             let toPointVector = G2D.subVectors(this, point);
             let contact = G2D.scaleVector(toPointVector, distance);
@@ -283,17 +283,34 @@ namespace Motion2D {
             this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(tangent, this.velocity));
         } // moveAround
 
-        moveBehind(target: Mobile, distance: number, clockwise = true): boolean {
+        moveFront(target: Mobile, distance: number): boolean {
             let targetDirectionVector = G2D.angleToUnitVector(target.direction);
             let toTargetVector = G2D.subVectors(target, this);
-            let colinearity = targetDirectionVector.x * toTargetVector.y - toTargetVector.x * targetDirectionVector.y;
-            if (Math.abs(colinearity) < 2) {
+            let determinant = G2D.detVectors(targetDirectionVector, toTargetVector);
+            if (Math.abs(determinant) < 2) {
+                let a1 = target.direction;
+                let a2 = G2D.unitVectorToAngle(G2D.normalizeVector(toTargetVector));
+                if (Math.abs(a1 - a2 - Math.PI) < 0.01) { // less than 6°
+                    return true;
+                }
+            }
+            let clockwise = determinant > 0; // On the left
+            this.moveAround(target, distance, clockwise);
+            return false;
+        } // moveFront
+
+        moveBehind(target: Mobile, distance: number): boolean {
+            let targetDirectionVector = G2D.angleToUnitVector(target.direction);
+            let toTargetVector = G2D.subVectors(target, this);
+            let determinant = G2D.detVectors(targetDirectionVector, toTargetVector);
+            if (Math.abs(determinant) < 2) {
                 let a1 = target.direction;
                 let a2 = G2D.unitVectorToAngle(G2D.normalizeVector(toTargetVector));
                 if (Math.abs(a1 - a2) < 0.01) { // less than 6°
                     return true;
                 }
             }
+            let clockwise = determinant <= 0; // On the right
             this.moveAround(target, distance, clockwise);
             return false;
         } // moveBehind
