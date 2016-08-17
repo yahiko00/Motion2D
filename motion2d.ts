@@ -290,7 +290,7 @@ namespace Motion2D {
             if (Math.abs(determinant) < 2) {
                 let a1 = target.direction;
                 let a2 = G2D.unitVectorToAngle(G2D.normalizeVector(toTargetVector));
-                if (Math.abs(a1 - a2 - Math.PI) < 0.01) { // less than 6°
+                if (Math.abs(a1 - a2) - Math.PI < 0.01) { // less than 6°
                     return true;
                 }
             }

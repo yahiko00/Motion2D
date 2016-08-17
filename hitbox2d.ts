@@ -31,7 +31,7 @@ namespace Motion2D {
         abstract getNormalVector(point: G2D.Point): G2D.Vector;
     } // Hitbox
 
-    export class HitboxRect extends Hitbox implements G2D.AARectangle {
+    export class HitboxRect extends Hitbox implements G2D.AARect {
         x: number;
         y: number;
         width: number;
@@ -46,7 +46,7 @@ namespace Motion2D {
         } // constructor
 
         getDistToPoint(point: G2D.Point): number {
-            return G2D.distPointToRect(point, this);
+            return G2D.distPointToAARect(point, this);
         } // getDistToPoint
 
         getDistToHitbox(hitbox: Hitbox): number {
@@ -129,7 +129,7 @@ namespace Motion2D {
             width: hitbox2.width,
             height: hitbox2.height
         };
-        return G2D.circleToRectOverlap(nextH1, nextH2);
+        return G2D.circleToAARectOverlap(nextH1, nextH2);
     } // isCollisionCircleToRect
 
     export function isCollisionRectToRect(hitbox1: HitboxRect, move1: G2D.Vector, hitbox2: HitboxRect, move2: G2D.Vector): boolean {
@@ -145,7 +145,7 @@ namespace Motion2D {
             width: hitbox2.width,
             height: hitbox2.height
         };
-        return G2D.rectToRectOverlap(nextH1, nextH2);
+        return G2D.aaRectToRectOverlap(nextH1, nextH2);
     } // isCollisionRectToRect
 
     export function isCollision(hitbox1: Hitbox, move1: G2D.Vector, hitbox2: Hitbox, move2: G2D.Vector): boolean {
