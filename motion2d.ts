@@ -147,15 +147,35 @@ namespace Motion2D {
             this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(prefVelocity, this.velocity));
         }
 
-        seekArrival(point: G2D.Point, slowingRadius: number): void {
+        seekIntoTolerance(point: G2D.Point, tolerance: number): boolean {
+            let distanceSq = this.getDistanceSqToPoint(point) | 0;
+            if (distanceSq - tolerance * tolerance <= 0) { // Into tolerance range
+                return true;
+            }
+            else {
+                this.seek(point);
+                return false;
+            }
+        }
+
+        /*
+         * slowingRadius <= range
+         */
+        seekArrival(point: G2D.Point, slowingRadius: number, tolerance = 0): boolean {
             let prefVelocity = G2D.limitVector(G2D.subVectors(point, this), this.maxSpeed);
             let distance = this.getDistanceToPoint(point);
 
-            if (distance <= slowingRadius) {
+            if (distance <= slowingRadius) { // Inside the slowing radius
                 prefVelocity = G2D.multVectorByScalar(prefVelocity, this.maxSpeed * distance / slowingRadius);
             }
 
-            this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(prefVelocity, this.velocity));
+            if (distance <= tolerance) { // Into tolerance range
+                return true;
+            }
+            else {
+                this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(prefVelocity, this.velocity));
+                return false;
+            }
         }
 
         seekRandomPoint(maxX: number, maxY: number, speed = this.maxSpeed): void {
@@ -254,13 +274,28 @@ namespace Motion2D {
             if (!clockwise) {
                 let direction = 1;
             }
-            let vecLine = G2D.subVectors(this, point);
-            let contact = G2D.scaleVector(vecLine, distance);
-            let attraction = G2D.subVectors(contact, vecLine);
+            let toPointVector = G2D.subVectors(this, point);
+            let contact = G2D.scaleVector(toPointVector, distance);
+            let attraction = G2D.subVectors(contact, toPointVector);
             let tangent = G2D.scaleVector(G2D.tangentVectorCircle({ x: point.x, y: point.y, radius: distance }, this), direction * this.maxSpeed);
 
             this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(attraction, this.velocity));
             this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(tangent, this.velocity));
         } // moveAround
+
+        moveBehind(target: Mobile, distance: number, clockwise = true): boolean {
+            let targetDirectionVector = G2D.angleToUnitVector(target.direction);
+            let toTargetVector = G2D.subVectors(target, this);
+            let colinearity = targetDirectionVector.x * toTargetVector.y - toTargetVector.x * targetDirectionVector.y;
+            if (Math.abs(colinearity) < 2) {
+                let a1 = target.direction;
+                let a2 = G2D.unitVectorToAngle(G2D.normalizeVector(toTargetVector));
+                if (Math.abs(a1 - a2) < 0.01) { // less than 6°
+                    return true;
+                }
+            }
+            this.moveAround(target, distance, clockwise);
+            return false;
+        } // moveBehind
     } // SteeringMobile
 } // Motion2D
