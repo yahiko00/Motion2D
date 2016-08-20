@@ -6,7 +6,7 @@
         "strictNullChecks": true,
         "module": "umd",
         "target": "es5",
-        "sourceMap": true,
+        "sourceMap": false,
         "outDir": "dist"
     },
     "exclude": [

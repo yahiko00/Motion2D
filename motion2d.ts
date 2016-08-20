@@ -28,8 +28,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /// <reference path="../geometry2d/dist/geometry2d.d.ts" />
 
 namespace Motion2D {
-    export type Path = G2D.Point[];
-
     export class Mobile {
         // Mobile
         x: number;
@@ -109,23 +107,20 @@ namespace Motion2D {
     } // Mobile
 
     export class SteeringMobile extends Mobile {
+        // SteeringMobile
         mass: number;
         acceleration: G2D.Vector;
-        path: Path | null;
-        currentPathNode: number;
-        pathDirection: number;
 
-        constructor(x: number, y: number, maxSpeed: number, direction: number, hitbox: HitboxCircle, mass = 1, path?: Path | null, currentPathNode = 0) {
+        constructor(x: number, y: number, maxSpeed: number, direction: number, hitbox: HitboxCircle, mass = 1) {
             super(x, y, maxSpeed, direction, hitbox);
 
+            // SteeringMobile
             this.mass = mass;
             this.acceleration = G2D.NULL_VEC;
-            this.path = path || null;
-            this.currentPathNode = currentPathNode;
-            this.pathDirection = 1;
         } // constructor
 
         updatePosition(): void {
+            // SteeringMobile
             this.acceleration = G2D.NULL_VEC;
 
             super.updatePosition();
@@ -147,35 +142,15 @@ namespace Motion2D {
             this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(prefVelocity, this.velocity));
         }
 
-        seekIntoTolerance(point: G2D.Point, tolerance: number): boolean {
-            let distanceSq = this.getDistanceSqToPoint(point) | 0;
-            if (distanceSq - tolerance * tolerance <= 0) { // Into tolerance range
-                return true;
-            }
-            else {
-                this.seek(point);
-                return false;
-            }
-        }
-
-        /*
-         * slowingRadius <= range
-         */
-        seekArrival(point: G2D.Point, slowingRadius: number, tolerance = 0): boolean {
+        seekArrival(point: G2D.Point, slowingRadius: number): void {
             let prefVelocity = G2D.limitVector(G2D.subVectors(point, this), this.maxSpeed);
             let distance = this.getDistanceToPoint(point);
 
-            if (distance <= slowingRadius) { // Inside the slowing radius
+            if (distance <= slowingRadius) {
                 prefVelocity = G2D.multVectorByScalar(prefVelocity, this.maxSpeed * distance / slowingRadius);
             }
 
-            if (distance <= tolerance) { // Into tolerance range
-                return true;
-            }
-            else {
-                this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(prefVelocity, this.velocity));
-                return false;
-            }
+            this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(prefVelocity, this.velocity));
         }
 
         seekRandomPoint(maxX: number, maxY: number, speed = this.maxSpeed): void {
@@ -243,76 +218,6 @@ namespace Motion2D {
             } // for i
 
             return mostThreateningObstacle;
-        } // findMostThreateningObstacle
-
-        followPath(tolerance: number, backAndForth = false): boolean {
-            if (this.path && this.path.length > 0) {
-                let target = this.path[this.currentPathNode];
-                this.seek(target);
-
-                if (G2D.distanceSq(this, target) <= tolerance * tolerance) {
-                    this.currentPathNode += this.pathDirection;
-
-                    if (this.currentPathNode >= this.path.length || this.currentPathNode < 0) {
-                        if (backAndForth) {
-                            this.pathDirection *= -1;
-                            this.currentPathNode += this.pathDirection;
-                        }
-                        else {
-                            this.currentPathNode = this.path.length - 1;
-                            return true;
-                        }
-                    }
-                }
-            }
-
-            return false;
-        } // followPath
-
-        moveAround(point: G2D.Point, distance: number, clockwise = true): void {
-            let direction: number = -1;
-            if (!clockwise) {
-                direction = 1;
-            }
-            let toPointVector = G2D.subVectors(this, point);
-            let contact = G2D.scaleVector(toPointVector, distance);
-            let attraction = G2D.subVectors(contact, toPointVector);
-            let tangent = G2D.scaleVector(G2D.tangentVectorCircle({ x: point.x, y: point.y, radius: distance }, this), direction * this.maxSpeed);
-
-            this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(attraction, this.velocity));
-            this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(tangent, this.velocity));
-        } // moveAround
-
-        moveFront(target: Mobile, distance: number): boolean {
-            let targetDirectionVector = G2D.angleToUnitVector(target.direction);
-            let toTargetVector = G2D.subVectors(target, this);
-            let determinant = G2D.detVectors(targetDirectionVector, toTargetVector);
-            if (Math.abs(determinant) < 2) {
-                let a1 = target.direction;
-                let a2 = G2D.unitVectorToAngle(G2D.normalizeVector(toTargetVector));
-                if (Math.abs(a1 - a2) - Math.PI < 0.01) { // less than 6°
-                    return true;
-                }
-            }
-            let clockwise = determinant > 0; // On the left
-            this.moveAround(target, distance, clockwise);
-            return false;
-        } // moveFront
-
-        moveBehind(target: Mobile, distance: number): boolean {
-            let targetDirectionVector = G2D.angleToUnitVector(target.direction);
-            let toTargetVector = G2D.subVectors(target, this);
-            let determinant = G2D.detVectors(targetDirectionVector, toTargetVector);
-            if (Math.abs(determinant) < 2) {
-                let a1 = target.direction;
-                let a2 = G2D.unitVectorToAngle(G2D.normalizeVector(toTargetVector));
-                if (Math.abs(a1 - a2) < 0.01) { // less than 6°
-                    return true;
-                }
-            }
-            let clockwise = determinant <= 0; // On the right
-            this.moveAround(target, distance, clockwise);
-            return false;
-        } // moveBehind
+        } // fintMostThreateningObstacle
     } // SteeringMobile
 } // Motion2D
