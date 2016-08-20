@@ -25,7 +25,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 namespace Motion2D {
-    export type Hitbox = G2D.AARect | G2D.AABox | G2D.Circle;
+    export type Hitbox = G2D.Circle | G2D.AABox;
 
     export function isCollisionCircleToCircle(hitbox1: G2D.Circle, move1: G2D.Vector, hitbox2: G2D.Circle, move2: G2D.Vector): boolean {
         return G2D.circleToCircleOverlap(G2D.translateCircle(hitbox1, move1), G2D.translateCircle(hitbox2, move2));

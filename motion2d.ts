@@ -197,10 +197,7 @@ namespace Motion2D {
             else if (G2D.isAABox(this.hitbox)) {
                 radius = Math.max((this.hitbox).halfDimX, (this.hitbox).halfDimY);
             }
-            else if (G2D.isAARect(this.hitbox)) {
-                // AARect are not managed
-            }
-            let aheadDistance = radius + 20 * G2D.lengthVector(this.velocity);
+            let aheadDistance = this.getAheadDistance();
             let ahead: G2D.Point = G2D.addVectors(this, G2D.scaleVector(this.velocity, aheadDistance));
             let ahead2: G2D.Point = G2D.addVectors(this, G2D.scaleVector(this.velocity, aheadDistance / 2));
             let ahead3: G2D.Point = this;
@@ -215,8 +212,28 @@ namespace Motion2D {
                 ahead: ahead,
                 ahead2: ahead2,
                 ahead3: ahead3,
-                mostThreateningObstacle: mostThreateningObstacle
+                mostThreateningObstacle: mostThreateningObstacle,
+                avoidance: avoidance
             };
+        }
+
+        getAheadDistance(): number {
+            let aheadDistance = 0;
+            if (G2D.isCircle(this.hitbox)) {
+                aheadDistance = this.hitbox.radius * (1 + G2D.lengthVector(this.velocity));
+            }
+            else /*if (G2D.isAABox(this.hitbox))*/ {
+                aheadDistance = Math.max(this.hitbox.halfDimX, this.hitbox.halfDimY) * (1 + G2D.lengthVector(this.velocity));
+            }
+            return aheadDistance;
+        }
+
+        getAheadArea(aheadDistance = this.getAheadDistance()): Mobile {
+            let point: G2D.Point = G2D.addVectors(this, G2D.scaleVector(this.velocity, aheadDistance));
+
+            let area = new Mobile(point.x, point.y, this.maxSpeed, this.direction, { x: point.x, y: point.y, radius: aheadDistance });
+            area.setVelocity(this.velocity);
+            return area;
         }
 
         private findMostThreateningObstacle(ahead: G2D.Point, ahead2: G2D.Point, ahead3: G2D.Point, obstacles: Mobile[]): Mobile | null {
