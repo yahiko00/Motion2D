@@ -25,146 +25,79 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 namespace Motion2D {
-    export abstract class Hitbox {
-        abstract getDistToPoint(point: G2D.Point): number;
-        abstract getDistToHitbox(hitbox: Hitbox): number;
-        abstract getNormalVector(point: G2D.Point): G2D.Vector;
-    } // Hitbox
+    export type Hitbox = G2D.AARect | G2D.AABox | G2D.Circle;
 
-    export class HitboxRect extends Hitbox implements G2D.AARectangle {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-
-        constructor(x: number, y: number, width: number, height: number) {
-            super();
-            this.x = x;
-            this.y = y;
-            this.width = width;
-            this.height = height;
-        } // constructor
-
-        getDistToPoint(point: G2D.Point): number {
-            return G2D.distPointToRect(point, this);
-        } // getDistToPoint
-
-        getDistToHitbox(hitbox: Hitbox): number {
-            if (hitbox instanceof HitboxRect) {
-                let ul = { x: hitbox.x, y: hitbox.y };
-                let ur = { x: hitbox.x + hitbox.width, y: hitbox.y };
-                let bl = { x: hitbox.x, y: hitbox.y + hitbox.height };
-                let br = { x: hitbox.x + hitbox.width, y: hitbox.y + hitbox.height };
-                return Math.min(this.getDistToPoint(ul), this.getDistToPoint(ur), this.getDistToPoint(bl), this.getDistToPoint(br));
-            }
-            else if (hitbox instanceof HitboxCircle) {
-                return this.getDistToPoint(hitbox) - hitbox.radius;
-            }
-            return -1;
-        } // getDistToHitbox
-
-        getNormalVector(point: G2D.Point): G2D.Vector {
-            // TO IMPLEMENT
-            return { x: 0, y: 0 };
-        } // getNormalVector
-    } // HitboxRect
-
-    export class HitboxCircle extends Hitbox implements G2D.Circle {
-        x: number;
-        y: number;
-        radius: number;
-
-        constructor(x: number, y: number, radius: number) {
-            super();
-            this.x = x;
-            this.y = y;
-            this.radius = radius;
-        } // constructor
-
-        getDistToPoint(point: G2D.Point): number {
-            return G2D.distPointToCircle(point, this);
-        } // getDistToPoint
-
-        getDistToHitbox(hitbox: Hitbox): number {
-            if (hitbox instanceof HitboxRect) {
-                return hitbox.getDistToPoint(this) - this.radius;
-            }
-            else if (hitbox instanceof HitboxCircle) {
-                return hitbox.getDistToPoint(this) - this.radius;
-            }
-            return -1;
-        } // getDistToHitbox
-
-        getNormalVector(point: G2D.Point): G2D.Vector {
-            let dx = point.x - this.x;
-            let dy = point.y - this.y;
-            let norm = Math.sqrt(dx * dx + dy * dy);
-            return { x: dx / norm, y: dy / norm };
-        } // getNormalVector
-    } // HitboxCircle
-
-    export function isCollisionCircleToCircle(hitbox1: HitboxCircle, move1: G2D.Vector, hitbox2: HitboxCircle, move2: G2D.Vector): boolean {
-        let nextH1 = {
-            x: hitbox1.x + move1.x,
-            y: hitbox1.y + move1.y,
-            radius: hitbox1.radius
-        };
-        let nextH2 = {
-            x: hitbox2.x + move2.x,
-            y: hitbox2.y + move2.y,
-            radius: hitbox2.radius
-        };
-        return G2D.circleToCircleOverlap(nextH1, nextH2);
+    export function isCollisionCircleToCircle(hitbox1: G2D.Circle, move1: G2D.Vector, hitbox2: G2D.Circle, move2: G2D.Vector): boolean {
+        return G2D.circleToCircleOverlap(G2D.translateCircle(hitbox1, move1), G2D.translateCircle(hitbox2, move2));
     } // isCollisionCircleToCircle
 
-    export function isCollisionCircleToRect(hitbox1: HitboxCircle, move1: G2D.Vector, hitbox2: HitboxRect, move2: G2D.Vector): boolean {
-        let nextH1 = {
-            x: hitbox1.x + move1.x,
-            y: hitbox1.y + move1.y,
-            radius: hitbox1.radius
-        };
-        let nextH2 = {
-            x: hitbox2.x + move2.x,
-            y: hitbox2.y + move2.y,
-            width: hitbox2.width,
-            height: hitbox2.height
-        };
-        return G2D.circleToRectOverlap(nextH1, nextH2);
+    export function isCollisionCircleToAARect(hitbox1: G2D.Circle, move1: G2D.Vector, hitbox2: G2D.AARect, move2: G2D.Vector): boolean {
+        return G2D.circleToAARectOverlap(G2D.translateCircle(hitbox1, move1), G2D.translateAARect(hitbox2, move2));
     } // isCollisionCircleToRect
 
-    export function isCollisionRectToRect(hitbox1: HitboxRect, move1: G2D.Vector, hitbox2: HitboxRect, move2: G2D.Vector): boolean {
-        let nextH1 = {
-            x: hitbox1.x + move1.x,
-            y: hitbox1.y + move1.y,
-            width: hitbox1.width,
-            height: hitbox1.height
-        };
-        let nextH2 = {
-            x: hitbox2.x + move2.x,
-            y: hitbox2.y + move2.y,
-            width: hitbox2.width,
-            height: hitbox2.height
-        };
-        return G2D.rectToRectOverlap(nextH1, nextH2);
+    export function isCollisionCircleToAABox(hitbox1: G2D.Circle, move1: G2D.Vector, hitbox2: G2D.AABox, move2: G2D.Vector): boolean {
+        return G2D.circleToAABoxOverlap(G2D.translateCircle(hitbox1, move1), G2D.translateAABox(hitbox2, move2));
+    } // isCollisionCircleToAABox
+
+    export function isCollisionAABoxToAABox(hitbox1: G2D.AABox, move1: G2D.Vector, hitbox2: G2D.AABox, move2: G2D.Vector): boolean {
+        return G2D.aaBoxToBoxOverlap(G2D.translateAABox(hitbox1, move1), G2D.translateAABox(hitbox2, move2));
+    } // isCollisionAABoxToAABox
+
+    export function isCollisionAABoxToAARect(hitbox1: G2D.AABox, move1: G2D.Vector, hitbox2: G2D.AARect, move2: G2D.Vector): boolean {
+        return G2D.aaBoxToBoxOverlap(G2D.translateAABox(hitbox1, move1), G2D.translateAABox(G2D.aaRectToBox(hitbox2), move2));
+    } // isCollisionAABoxToAABox
+
+    export function isCollisionAARectToAARect(hitbox1: G2D.AARect, move1: G2D.Vector, hitbox2: G2D.AARect, move2: G2D.Vector): boolean {
+        return G2D.aaRectToRectOverlap(G2D.translateAARect(hitbox1, move1), G2D.translateAARect(hitbox2, move2));
     } // isCollisionRectToRect
 
     export function isCollision(hitbox1: Hitbox, move1: G2D.Vector, hitbox2: Hitbox, move2: G2D.Vector): boolean {
-        if (hitbox1 instanceof HitboxCircle) {
-            if (hitbox2 instanceof HitboxCircle) {
+        if (G2D.isCircle(hitbox1)) {
+            if (G2D.isCircle(hitbox2)) {
                 return isCollisionCircleToCircle(hitbox1, move1, hitbox2, move2);
             }
-            else if (hitbox2 instanceof HitboxRect) {
-                return isCollisionCircleToRect(hitbox1, move1, hitbox2, move2);
+            else if (G2D.isAABox(hitbox2)) {
+                return isCollisionCircleToAABox(hitbox1, move1, hitbox2, move2);
+            }
+            else if (G2D.isAARect(hitbox2)) {
+                return isCollisionCircleToAARect(hitbox1, move1, hitbox2, move2);
             }
         }
-        else if (hitbox1 instanceof HitboxRect) {
-            if (hitbox2 instanceof HitboxCircle) {
-                return isCollisionCircleToRect(hitbox2, move2, hitbox1, move1);
+        if (G2D.isAABox(hitbox1)) {
+            if (G2D.isCircle(hitbox2)) {
+                return isCollisionCircleToAABox(hitbox2 as G2D.Circle, move1, hitbox1 as G2D.AABox, move2);
             }
-            else if (hitbox2 instanceof HitboxRect) {
-                return isCollisionRectToRect(hitbox1, move1, hitbox2, move2);
+            else if (G2D.isAABox(hitbox2)) {
+                return isCollisionAABoxToAABox(hitbox1 as G2D.AABox, move1, hitbox2 as G2D.AABox, move2);
+            }
+            else if (G2D.isAARect(hitbox2)) {
+                return isCollisionAABoxToAARect(hitbox1 as G2D.AABox, move1, hitbox2 as G2D.AARect, move2);
+            }
+        }
+        else if (G2D.isAARect(hitbox1)) {
+            if (G2D.isCircle(hitbox2)) {
+                return isCollisionCircleToAARect(hitbox2 as G2D.Circle, move2, hitbox1 as G2D.AARect, move1);
+            }
+            else if (G2D.isAABox(hitbox2)) {
+                return isCollisionAABoxToAARect(hitbox2 as G2D.AABox, move1, hitbox1 as G2D.AARect, move2);
+            }
+            else if (G2D.isAARect(hitbox2)) {
+                return isCollisionAARectToAARect(hitbox1 as G2D.AARect, move1, hitbox2 as G2D.AARect, move2);
             }
         }
         return false;
     } // isCollision
+
+    export function pointInHitbox(point: G2D.Point, hitbox: Hitbox): boolean {
+        if (G2D.isCircle(hitbox)) {
+            return G2D.pointInCircle(point, hitbox as G2D.Circle);
+        }
+        if (G2D.isAABox(hitbox)) {
+            return G2D.pointInAABox(point, hitbox as G2D.AABox);
+        }
+        else if (G2D.isAARect(hitbox)) {
+            return G2D.pointInAARect(point, hitbox as G2D.AARect);
+        }
+        return false;
+    }
 } // Motion2D
