@@ -1,50 +1,28 @@
 // motion2d.ts
-/*!
-MIT License
 
-Copyright (c) 2016 Yahiko
- 
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
- 
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
- 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+import G2D from "geometry2d/dist/geometry2d";
+import Hitbox2D from "hitbox2d/dist/hitbox2d";
 
-/// <reference path="../paon/dist/paon.d.ts" />
-/// <reference path="../geometry2d/dist/geometry2d.d.ts" />
+export default Motion2D;
 
 namespace Motion2D {
     export type Path = G2D.Point[];
 
     export class Mobile {
         // Mobile
-        x: number;
-        y: number;
-        velocity: G2D.Vector;
-        maxSpeed: number; // in unit distance per tick
-        hitbox: Hitbox;
+        x:         number;
+        y:         number;
+        velocity:  G2D.Vector;
+        maxSpeed:  number; // in unit distance per tick
+        hitbox:    Hitbox2D.Hitbox;
         direction: number;
 
-        constructor(x: number, y: number, maxSpeed: number, direction: number, hitbox: Hitbox) {
-            this.x = x;
-            this.y = y;
-            this.velocity = { x: 0, y: 0 };
-            this.maxSpeed = maxSpeed;
-            this.hitbox = hitbox;
+        constructor(x: number, y: number, maxSpeed: number, direction: number, hitbox: Hitbox2D.Hitbox) {
+            this.x         = x;
+            this.y         = y;
+            this.velocity  = { x: 0, y: 0 };
+            this.maxSpeed  = maxSpeed;
+            this.hitbox    = hitbox;
             this.direction = direction;
         }
 
@@ -67,8 +45,8 @@ namespace Motion2D {
 
         updatePosition() {
             // Mobile
-            this.x += this.velocity.x;
-            this.y += this.velocity.y;
+            this.x       += this.velocity.x;
+            this.y       += this.velocity.y;
             this.hitbox.x = this.x;
             this.hitbox.y = this.y;
         }
@@ -101,18 +79,18 @@ namespace Motion2D {
     } // Mobile
 
     export class SteeringMobile extends Mobile {
-        mass: number;
-        acceleration: G2D.Vector;
-        path: Path | null;
+        mass:            number;
+        acceleration:    G2D.Vector;
+        path:            Path | null;
         currentPathNode: number;
-        pathDirection: number;
+        pathDirection:   number;
 
-        constructor(x: number, y: number, maxSpeed: number, direction: number, hitbox: Hitbox, mass = 1, path?: Path | null, currentPathNode = 0) {
+        constructor(x: number, y: number, maxSpeed: number, direction: number, hitbox: Hitbox2D.Hitbox, mass = 1, path?: Path | null, currentPathNode = 0) {
             super(x, y, maxSpeed, direction, hitbox);
 
-            this.mass = mass;
-            this.acceleration = G2D.NULL_VEC;
-            this.path = path || null;
+            this.mass            = mass;
+            this.acceleration    = G2D.NULL_VEC;
+            this.path            = path || null;
             this.currentPathNode = currentPathNode;
             this.pathDirection = 1;
         } // constructor
@@ -141,18 +119,18 @@ namespace Motion2D {
         }
 
         flee(point: G2D.Point): void {
-            let prefVelocity = G2D.limitVector(G2D.subVectors(this, point), this.maxSpeed);
+            let prefVelocity  = G2D.limitVector(G2D.subVectors(this, point), this.maxSpeed);
             this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(prefVelocity, this.velocity));
         }
 
         seek(point: G2D.Point): void {
-            let prefVelocity = G2D.limitVector(G2D.subVectors(point, this), this.maxSpeed);
+            let prefVelocity  = G2D.limitVector(G2D.subVectors(point, this), this.maxSpeed);
             this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(prefVelocity, this.velocity));
         }
 
         seekArrival(point: G2D.Point, slowingRadius: number): void {
             let prefVelocity = G2D.limitVector(G2D.subVectors(point, this), this.maxSpeed);
-            let distance = G2D.distance(this, point);
+            let distance     = G2D.distance(this, point);
 
             if (distance <= slowingRadius) { // Inside the slowing radius
                 prefVelocity = G2D.multVectorByScalar(prefVelocity, this.maxSpeed * distance / slowingRadius);
@@ -166,15 +144,15 @@ namespace Motion2D {
             this.seek(point);
         }
 
-        pursuit(target: Mobile, tickAhead = 3): void {
+        pursuit(target: Mobile, slowingRadius: number, tickAhead = 3): void {
             let futureTarget = G2D.addVectors(target, G2D.multVectorByScalar(target.velocity, tickAhead));
-            this.seek(futureTarget);
+            this.seekArrival(futureTarget, slowingRadius);
         }
 
-        adaptativePursuit(target: Mobile): void {
-            let tickAhead = G2D.distance(this, target) / target.maxSpeed;
+        adaptativePursuit(target: Mobile, slowingRadius: number): void {
+            let tickAhead    = G2D.distance(this, target) / target.maxSpeed;
             let futureTarget = G2D.addVectors(target, G2D.multVectorByScalar(target.velocity, tickAhead));
-            this.seek(futureTarget);
+            this.seekArrival(futureTarget, slowingRadius);
         }
 
         evade(target: Mobile, tickAhead = 3): void {
@@ -183,14 +161,14 @@ namespace Motion2D {
         }
 
         adaptativeEvade(target: Mobile): void {
-            let tickAhead = G2D.distance(this, target) / target.maxSpeed;
+            let tickAhead    = G2D.distance(this, target) / target.maxSpeed;
             let futureTarget = G2D.addVectors(target, G2D.multVectorByScalar(target.velocity, tickAhead));
             this.flee(futureTarget);
         }
 
         avoidObstacles(obstacles: Mobile[]): any {
             let avoidance = G2D.NULL_VEC;
-            let radius = 0;
+            let radius    = 0;
             if (G2D.isCircle(this.hitbox)) {
                 radius = (this.hitbox).radius;
             }
@@ -198,7 +176,7 @@ namespace Motion2D {
                 radius = Math.max((this.hitbox).halfDimX, (this.hitbox).halfDimY);
             }
             let aheadDistance = this.getAheadDistance();
-            let ahead: G2D.Point = G2D.addVectors(this, G2D.scaleVector(this.velocity, aheadDistance));
+            let ahead:  G2D.Point = G2D.addVectors(this, G2D.scaleVector(this.velocity, aheadDistance));
             let ahead2: G2D.Point = G2D.addVectors(this, G2D.scaleVector(this.velocity, aheadDistance / 2));
             let ahead3: G2D.Point = this;
 
@@ -209,11 +187,11 @@ namespace Motion2D {
 
             this.acceleration = G2D.addVectors(this.acceleration, avoidance);
             return {
-                ahead: ahead,
-                ahead2: ahead2,
-                ahead3: ahead3,
+                ahead:                   ahead,
+                ahead2:                  ahead2,
+                ahead3:                  ahead3,
                 mostThreateningObstacle: mostThreateningObstacle,
-                avoidance: avoidance
+                avoidance:               avoidance
             };
         }
 
@@ -242,7 +220,10 @@ namespace Motion2D {
             for (let i = 0; i < obstacles.length; i++) {
                 let obstacle = obstacles[i];
                 if (obstacle !== this) {
-                    let isCollision = pointInHitbox(ahead, obstacle.hitbox) || pointInHitbox(ahead2, obstacle.hitbox) || pointInHitbox(ahead3, obstacle.hitbox);
+                    let isCollision =
+                        Hitbox2D.pointInHitbox(ahead, obstacle.hitbox) ||
+                        Hitbox2D.pointInHitbox(ahead2, obstacle.hitbox) ||
+                        Hitbox2D.pointInHitbox(ahead3, obstacle.hitbox);
 
                     if (isCollision) {
                         if (!mostThreateningObstacle || G2D.distance(this, obstacle) < G2D.distance(this, mostThreateningObstacle)) {
@@ -284,10 +265,10 @@ namespace Motion2D {
             if (!clockwise) {
                 direction = 1;
             }
-            let toPoint = G2D.subVectors(this, point);
-            let contact = G2D.scaleVector(toPoint, distance);
+            let toPoint    = G2D.subVectors(this, point);
+            let contact    = G2D.scaleVector(toPoint, distance);
             let attraction = G2D.subVectors(contact, toPoint);
-            let tangent = G2D.scaleVector(G2D.tangentUnitVectorCircle({ x: point.x, y: point.y, radius: distance }, this), direction * this.maxSpeed);
+            let tangent    = G2D.scaleVector(G2D.tangentUnitVectorCircle({ x: point.x, y: point.y, radius: distance }, this), direction * this.maxSpeed);
 
             this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(attraction, this.velocity));
             this.acceleration = G2D.addVectors(this.acceleration, G2D.subVectors(tangent, this.velocity));
@@ -295,28 +276,28 @@ namespace Motion2D {
 
         moveFront(target: Mobile, distance: number): boolean {
             let targetDirectionVector = G2D.angleToUnitVector(target.direction);
-            let toTarget = G2D.subVectors(target, this);
-            let a1 = target.direction;
-            let a2 = G2D.unitVectorToAngle(G2D.normalizeVector(toTarget));
+            let toTarget              = G2D.subVectors(target, this);
+            let a1                    = target.direction;
+            let a2                    = G2D.unitVectorToAngle(G2D.normalizeVector(toTarget));
             if (Math.abs(Math.abs(a1 - a2) - Math.PI) < 0.01) { // less than 6°
                 return true;
             }
             let determinant = G2D.detVectors(targetDirectionVector, toTarget);
-            let clockwise = determinant > 0; // On the left
+            let clockwise   = determinant > 0; // On the left
             this.moveAround(target, distance, clockwise);
             return false;
         } // moveFront
 
         moveBehind(target: Mobile, distance: number): boolean {
             let targetDirectionVector = G2D.angleToUnitVector(target.direction);
-            let toTarget = G2D.subVectors(target, this);
-            let a1 = target.direction;
-            let a2 = G2D.unitVectorToAngle(G2D.normalizeVector(toTarget));
+            let toTarget              = G2D.subVectors(target, this);
+            let a1                    = target.direction;
+            let a2                    = G2D.unitVectorToAngle(G2D.normalizeVector(toTarget));
             if (Math.abs(a1 - a2) < 0.01) { // less than 6°
                 return true;
             }
             let determinant = G2D.detVectors(targetDirectionVector, toTarget);
-            let clockwise = determinant <= 0; // On the right
+            let clockwise   = determinant <= 0; // On the right
             this.moveAround(target, distance, clockwise);
             return false;
         } // moveBehind
