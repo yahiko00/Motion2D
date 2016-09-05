@@ -25,7 +25,7 @@
     }
   ],
   "dependencies": {
-    "geometry2d": "^0.1.4"
+    "geometry2d": "^0.1.5"
   },
   "devDependencies": {
     "uglify-js": "^2.4.13"
